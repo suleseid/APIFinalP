@@ -9,7 +9,7 @@ namespace APIFinalP.Controllers
     [Route("api/[controller]")]
     [ApiController]
     //We inherit from ControllerBase
-    public class DoctorController: ControllerBase
+    public class DoctorController : ControllerBase
     {
         //GET: api/Doctor
         //This endpoint is typically returns all of the entities (doctor) from the database

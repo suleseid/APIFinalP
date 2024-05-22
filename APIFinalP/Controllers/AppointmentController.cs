@@ -12,7 +12,7 @@ namespace APIFinalP.Controllers
     public class AppointmentController : ControllerBase
     {
         //GET: api/Appointment
-        //This endpoint is typically returns all of the entities (nurse) from the database
+        //This endpoint is typically returns all of the entities (appointment) from the database
         //Select * from Appointment
         //Constractor will initialize properly
         string connectionString;
