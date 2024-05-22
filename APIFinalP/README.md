@@ -90,6 +90,7 @@ Go
 
 /*DROP TABLE Hospital.Patient;*/
 
+````csharp
 CREATE TABLE [Hospital].[Patient] (
     [Patient_Id] INT           IDENTITY (1, 1) NOT NULL,
     [First Name] VARCHAR (50)  NOT NULL,
@@ -411,6 +412,8 @@ VALUES
 
 SELECT [Treatment], [Diagnosis], [Patient_Id]
 FROM [Hospital].[Medicalrecord];
+
+``````
 
 
 
