@@ -5,7 +5,7 @@ namespace APIFinalP.Models
     public class Doctor
     {
         //When we constract properties we can use the shortway
-        //the short way we can use prop tep tap
+        //the short way we can use prop tap tap
         public int Doctor_Id { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }

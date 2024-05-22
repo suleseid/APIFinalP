@@ -85,11 +85,11 @@ namespace APIFinalP.Controllers
             }
             doctor.Doctor_Id = id;
             using SqlConnection connection = new SqlConnection(connectionString);
-            //return Ok(student);
+            //return Ok(doctor);
             //PUT- we have to send every information wheether changed or not
             int rowAffected = connection.Execute(
-                "UPDATE Hospital.Doctor SET First Name =@First Name, Last Name =@Last Name, Specialization = @Specialization, Department_Id =@Department_Id, Patient_Id) =@Patient_Id) " +
-                " WHERE DoctorId =@DoctorId ", doctor);
+                "UPDATE Hospital.Doctor SET First Name =@First Name, Last Name =@Last Name, Specialization = @Specialization, Department_Id =@Department_Id, Patient_Id =@Patient_Id " +
+                " WHERE Doctor_Id =@Doctor_Id ", doctor);
             if (rowAffected == 0)
             {
                 return BadRequest();
