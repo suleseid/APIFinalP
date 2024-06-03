@@ -53,28 +53,50 @@ namespace APIFinalP.Controllers
         //Post-Create
         //Put-Update
         //Delete
-
         [HttpPost]
         public ActionResult<Doctor> CreateDoctor(Doctor doctor)
         {
+            if (doctor.Department_Id < 1 || doctor.Patient_Id < 1)
+            {
+                return BadRequest(new { message = "Invalid Department_Id or Patient_Id." });
+            }
             using SqlConnection connection = new SqlConnection(connectionString);
-            return Ok(doctor);
+
+            // Check if the department exists
+            Department department = connection.QueryFirstOrDefault<Department>(
+                "SELECT * FROM Hospital.Department WHERE Department_Id = @Id", new { Id = doctor.Department_Id });
+
+            if (department == null)
+            {
+                return BadRequest(new { message = "Department not found." });
+            }
+
+            // Check if the patient exists
+            Patient patient = connection.QueryFirstOrDefault<Patient>(
+                "SELECT * FROM Hospital.Patient WHERE Patient_Id = @Id", new { Id = doctor.Patient_Id });
+
+            if (patient == null)
+            {
+                return BadRequest(new { message = "Patient not found." });
+            }
 
             try
             {
                 Doctor newDoctor = connection.QuerySingle<Doctor>(
-                    "INSERT INTO Hospital.Doctor(First Name, Last Name, Specialization,Department_Id, Patient_Id) " +
-                    "VALUES (@First Name, @Last Name, @Specialization, @Department_Id, @Patient_Id); SELLECT * FROM Hospital.Doctor " +
-                    "WHERE Doctor_Id = SCOPE_IDENTITY(); ", doctor);
+                    "INSERT INTO Hospital.Doctor (FirstName, LastName, Specialization, Department_Id, Patient_Id) " +
+                    "OUTPUT INSERTED.* VALUES (@FirstName, @LastName, @Specialization, @Department_Id, @Patient_Id);", doctor);
+
                 return Ok(newDoctor);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
-                return BadRequest();
+                Console.WriteLine(ex.Message);
+                return BadRequest(new { message = "An error occurred while creating the doctor.", error = ex.Message });
             }
-
         }
+
+
+        //Update opreations
         //PUT api/Doctor/id
         [HttpPut("{id}")]
         public ActionResult<Doctor> UpdateDoctor(int id, Doctor doctor)
@@ -88,7 +110,7 @@ namespace APIFinalP.Controllers
             //return Ok(doctor);
             //PUT- we have to send every information wheether changed or not
             int rowAffected = connection.Execute(
-                "UPDATE Hospital.Doctor SET First Name =@First Name, Last Name =@Last Name, Specialization = @Specialization, Department_Id =@Department_Id, Patient_Id =@Patient_Id " +
+                "UPDATE Hospital.Doctor SET FirstName =@FirstName, LastName =@LastName, Specialization = @Specialization, Department_Id =@Department_Id, Patient_Id =@Patient_Id " +
                 " WHERE Doctor_Id =@Doctor_Id ", doctor);
             if (rowAffected == 0)
             {
@@ -96,6 +118,24 @@ namespace APIFinalP.Controllers
             }
             return Ok(doctor);
         }
+        //Delete operation
+        //Delete api/Doctor/id
+        [HttpDelete("{id}")]
 
+        public ActionResult DeleteDoctor(int id) 
+        {
+            if(id < 1)
+            {
+                return NotFound();
+            }
+            using SqlConnection connection = new SqlConnection(connectionString);
+            int rowAffected = connection.Execute("DELETE FROM Hospital.Doctor WHERE Doctor_Id = @Id", new {Id = id });
+            
+            if(rowAffected == 0)
+            {
+                return BadRequest();
+            }
+             return Ok();
+        }
     }
 }
