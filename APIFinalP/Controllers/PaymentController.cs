@@ -95,20 +95,36 @@ namespace APIFinalP.Controllers
         {
             if (id < 1)
             {
-                //return BadRequest(new { message = "Invalid Payment_Id." });
-                if (!DateTime.TryParseExact(payment.PaymentDate, "yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
-                {
-                    return BadRequest(new { message = "Invalid PaymentDate format. Please use 'yyyy-MM-ddTHH:mm:ss' format." });
-                }
+                return BadRequest(new { message = "Invalid Payment_Id." });
+            }
 
-            }            
+            // Declare and initialize the paymentDateString variable
+            string paymentDateString = payment.PaymentDate.ToString("yyyy-MM-ddTHH:mm:ss");
+
+            // Use the paymentDateString variable for parsing
+            if (!DateTime.TryParseExact(paymentDateString, "yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
+            {
+                return BadRequest(new { message = "Invalid PaymentDate format. Please use 'yyyy-MM-ddTHH:mm:ss' format." });
+            }
+
             payment.Payment_Id = id;
             using SqlConnection connection = new SqlConnection(connectionString);
-            //return Ok(Payment);
-            //PUT- we have to send every information wheether changed or not
+
+            // Log the Patient_Id being checked
+            Console.WriteLine($"Checking for Patient_Id: {payment.Patient_Id}");
+
+
+            // Check if the patient exists
+            Patient patient = connection.QueryFirstOrDefault<Patient>(
+                "SELECT * FROM Hospital.Patient WHERE Patient_Id = @Id", new { Id = payment.Patient_Id });
+
+            if (patient == null)
+            {
+                return BadRequest(new { message = "Patient not found." });
+            }
             int rowAffected = connection.Execute(
-                "UPDATE Hospital.Payment SET Patient_Id =@Patient_Id, Amount = @Amount, PaymentDate =@PaymentDate " +
-                " WHERE Payment_Id =@Payment_Id ", payment);
+                "UPDATE Hospital.Payment SET Patient_Id = @Patient_Id, Amount = @Amount, PaymentDate = @PaymentDate " +
+                "WHERE Payment_Id = @Payment_Id", payment);
             if (rowAffected == 0)
             {
                 return NotFound();

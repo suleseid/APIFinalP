@@ -54,28 +54,50 @@ namespace APIFinalP.Controllers
         //Post-Create
         //Put-Update
         //Delete
-
         [HttpPost]
         public ActionResult<Nurse> CreateNurse(Nurse nurse)
         {
+            if (nurse.Department_Id < 1 || nurse.Patient_Id < 1)
+            {
+                return BadRequest(new { message = "Invalid Department_Id or Patient_Id." });
+            }
             using SqlConnection connection = new SqlConnection(connectionString);
-            return Ok(nurse);
+
+            // Check if the department exists
+            Department department = connection.QueryFirstOrDefault<Department>(
+                "SELECT * FROM Hospital.Department WHERE Department_Id = @Id", new { Id = nurse.Department_Id });
+
+            if (department == null)
+            {
+                return BadRequest(new { message = "Department not found." });
+            }
+
+            // Check if the patient exists
+            Patient patient = connection.QueryFirstOrDefault<Patient>(
+                "SELECT * FROM Hospital.Patient WHERE Patient_Id = @Id", new { Id = nurse.Patient_Id });
+
+            if (patient == null)
+            {
+                return BadRequest(new { message = "Patient not found." });
+            }
 
             try
             {
                 Nurse newNurse = connection.QuerySingle<Nurse>(
-                    "INSERT INTO Hospital.Nurse(First Name, Last Name, Department_Id, Patient_Id) " +
-                    "VALUES (@First Name, @Last Name, @Department_Id, @Patient_Id); SELLECT * FROM Hospital.Nurse " +
-                    "WHERE Nurse_Id = SCOPE_IDENTITY(); ", nurse);
+                    "INSERT INTO Hospital.Nurse (FirstName, LastName, Department_Id, Patient_Id) " +
+                    "OUTPUT INSERTED.* VALUES (@FirstName, @LastName, @Department_Id, @Patient_Id);", nurse);
+
                 return Ok(newNurse);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
-                return BadRequest();
+                Console.WriteLine(ex.Message);
+                return BadRequest(new { message = "An error occurred while creating the nurse.", error = ex.Message });
             }
-
         }
+
+
+        //Update opreations
         //PUT api/Nurse/id
         [HttpPut("{id}")]
         public ActionResult<Nurse> UpdateNurse(int id, Nurse nurse)
@@ -84,18 +106,69 @@ namespace APIFinalP.Controllers
             {
                 return BadRequest();
             }
+
+            // Ensure the provided IDs are valid
+            if (nurse.Department_Id < 1 || nurse.Patient_Id < 1)
+            {
+                return BadRequest(new { message = "Invalid Department_Id or Patient_Id." });
+            }
+
             nurse.Nurse_Id = id;
             using SqlConnection connection = new SqlConnection(connectionString);
-            //return Ok(nurse);
-            //PUT- we have to send every information wheether changed or not
+
+            // Check if the department exists
+            Department department = connection.QueryFirstOrDefault<Department>(
+                "SELECT * FROM Hospital.Department WHERE Department_Id = @Id", new { Id = nurse.Department_Id });
+
+            if (department == null)
+            {
+                return BadRequest(new { message = "Department not found." });
+            }
+
+            // Check if the patient exists
+            Patient patient = connection.QueryFirstOrDefault<Patient>(
+                "SELECT * FROM Hospital.Patient WHERE Patient_Id = @Id", new { Id = nurse.Patient_Id });
+
+            if (patient == null)
+            {
+                return BadRequest(new { message = "Patient not found." });
+            }
+
+            // Corrected SQL statement without extra parenthesis
             int rowAffected = connection.Execute(
-                "UPDATE Hospital.Nurse SET First Name =@First Name, Last Name =@Last Name, Department_Id =@Department_Id, Patient_Id =@Patient_Id " +
-                " WHERE Nurse_Id =@Nurse_Id ", nurse);
+                "UPDATE Hospital.Nurse SET FirstName = @FirstName, LastName = @LastName, Department_Id = @Department_Id, Patient_Id = @Patient_Id " +
+                "WHERE Nurse_Id = @Nurse_Id", nurse);
+
+            if (rowAffected == 0)
+            {
+                return NotFound();
+            }
+
+            return Ok(nurse);
+        }
+
+
+        //Delete operation
+        //Delete api/Nurse/id
+        [HttpDelete("{id}")]
+
+        public ActionResult DeleteNurse(int id)
+        {
+            if (id < 1)
+            {
+                return NotFound();
+            }
+            using SqlConnection connection = new SqlConnection(connectionString);
+            int rowAffected = connection.Execute("DELETE FROM Hospital.Nurse WHERE Nurse_Id = @Id", new { Id = id });
+
             if (rowAffected == 0)
             {
                 return BadRequest();
             }
-            return Ok(nurse);
+            return Ok();
         }
     }
+
 }
+        
+

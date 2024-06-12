@@ -58,7 +58,7 @@ namespace APIFinalP.Controllers
         public ActionResult<Appointment> CreateAppointment(Appointment appointment)
         {
             using SqlConnection connection = new SqlConnection(connectionString);
-            return Ok(appointment);
+            //return Ok(appointment);
 
             try
             {
