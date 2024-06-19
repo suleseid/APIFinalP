@@ -2,7 +2,7 @@
 using System.Data.SqlClient;
 using Microsoft.AspNetCore.Mvc;
 using APIFinalP.Models;
-using System.Collections;
+using System.Collections.Generic;
 
 namespace APIFinalP.Controllers
 {
@@ -21,19 +21,16 @@ namespace APIFinalP.Controllers
         public RegistrationController(IConfiguration configuration)
         {
             connectionString = configuration.GetConnectionString("APIFinalP");
-            //Console.WriteLine(connectionString);
         }
-        //get
-        //api/registrations
+
         [HttpGet]
         public ActionResult<List<Registration>> GetAllRegistrations()
         {
             using SqlConnection connection = new SqlConnection(connectionString);
-            List<Registration> registrations = connection.Query<Registration>("Select * From Hospital.Registration").ToList();
+            List<Registration> registrations = connection.Query<Registration>("SELECT * FROM Hospital.Registration").ToList();
             return Ok(registrations);
         }
-        //Get with an id
-        //Api/Registration/id
+
         [HttpGet("{id}")]
         public ActionResult<Registration> GetRegistrations(int id)
         {
@@ -59,24 +56,28 @@ namespace APIFinalP.Controllers
         public ActionResult<Registration> CreateRegistration(Registration registration)
         {
             using SqlConnection connection = new SqlConnection(connectionString);
-            return Ok(registration);
+
+            // Check if the patient exists (optional but recommended for data integrity)
+            var patient = connection.QueryFirstOrDefault<Patient>("SELECT * FROM Hospital.Patient WHERE Patient_Id = @Id", new { Id = registration.Patient_Id });
+            if (patient == null) 
+                return BadRequest(new { message = "Patient Not Found." });
 
             try
             {
                 Registration newRegistration = connection.QuerySingle<Registration>(
-                    "INSERT INTO Hospital.Registration(First Name, Last Name, Specialization,Department_Id, Patient_Id) " +
-                    "VALUES (@First Name, @Last Name, @Specialization, @Department_Id, @Patient_Id); SELLECT * FROM Hospital.Registration " +
-                    "WHERE Registration_Id = SCOPE_IDENTITY(); ", registration);
+                    "INSERT INTO Hospital.Registration (Patient_Id, RegistrationDate, FirstName, LastName ) " +
+                    "OUTPUT INSERTED.* VALUES (@Patient_Id, @RegistrationDate, @FirstName, @LastName );", registration);
+
                 return Ok(newRegistration);
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex);
-                return BadRequest();
+                return BadRequest(new { message = "An error occurred while creating the registration.", error = ex.Message });
             }
-
         }
-        //PUT api/Registration/id
+
+        //Update/Registration/id
         [HttpPut("{id}")]
         public ActionResult<Registration> UpdateRegistration(int id, Registration registration)
         {
@@ -86,16 +87,38 @@ namespace APIFinalP.Controllers
             }
             registration.Registration_Id = id;
             using SqlConnection connection = new SqlConnection(connectionString);
-            //return Ok(registration);
-            //PUT- we have to send every information wheether changed or not
+
+            // Check if the patient exists (optional but recommended for data integrity)
+            var patient = connection.QueryFirstOrDefault<Patient>("SELECT * FROM Hospital.Patient WHERE Patient_Id = @Id", new { Id = registration.Patient_Id });
+            if (patient == null) 
+                return BadRequest(new { message = "Patient not found." });
+
             int rowAffected = connection.Execute(
-                "UPDATE Hospital.Registration SET First Name =@First Name, Last Name =@Last Name, Specialization = @Specialization, Department_Id =@Department_Id, Patient_Id =@Patient_Id " +
-                " WHERE Registration_Id =@Doctor_Id ", registration);
+                "UPDATE Hospital.Registration SET Patient_Id = @Patient_Id, RegistrationDate = @RegistrationDate, FirstName = @FirstName, LastName = @LastName " +
+                "WHERE Registration_Id = @Registration_Id", registration);
             if (rowAffected == 0)
             {
-                return BadRequest();
+                return BadRequest(new { message = "Update failed. Registration not found." });
             }
             return Ok(registration);
         }
+        //Delete operation
+        //Delete api/Registration/id
+        [HttpDelete("{id}")]
+        public ActionResult DeleteRegistration(int id)
+        {
+            if (id < 1)
+            {
+                return BadRequest();
+            }
+            using SqlConnection connection = new SqlConnection(connectionString);
+            int rawAffected = connection.Execute("DELETE FROM Hospital.Registration WHERE Registration_Id = @Id", new { Id = @id });
+            if (rawAffected == 0)
+            {
+                return NotFound();
+            }
+            return Ok();
+        }
     }
 }
+

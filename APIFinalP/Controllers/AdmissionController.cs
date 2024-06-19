@@ -15,17 +15,22 @@ namespace APIFinalP.Controllers
         //GET: api/Admission
         //This endpoint is typically returns all of the entities (admission) from the database
         //Select * from Admission
-        //Constractor will initialize properly
-        string connectionString;
 
+        //This field used to connect to the database.
+        string connectionString; 
+
+        //This is constructor.
+        //The constractor asign the field.
         public AdmissionController(IConfiguration configuration)
         {
+            //This assigns our project (APIFinalP) to the connectionString field. 
             connectionString = configuration.GetConnectionString("APIFinalP");
-            //Console.WriteLine(connectionString);
+            
         }
         //get
         //api/admissions
         [HttpGet]
+        //Inside the ActionResult there is a generic, which is acual shape of the data.
         public ActionResult<List<Admission>> GetAllAdmissions()
         {
             using SqlConnection connection = new SqlConnection(connectionString);
@@ -82,7 +87,7 @@ namespace APIFinalP.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                //Console.WriteLine(ex.Message);
                 return BadRequest(new { message = "An error occurred while creating the admission.", error = ex.Message });
             }
         }
@@ -101,7 +106,7 @@ namespace APIFinalP.Controllers
             //return Ok(admission);
             //PUT- we have to send every information wheether changed or not
             int rowAffected = connection.Execute(
-                "UPDATE Hospital.Admission SET Patient_Id =@Patient_Id, AdmissionDate = @AdmissionDate, DischargeDate =@DischargeDate " +
+                "UPDATE Hospital.Admission SET Patient_Id =@Patient_Id, Doctor_Id = @Doctor_Id, Diagnosis = @Diagnosis, Treatment =@Treatment " +
                 " WHERE Admission_Id =@Admission_Id ", admission);
             if (rowAffected == 0)
             {

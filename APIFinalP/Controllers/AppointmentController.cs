@@ -25,6 +25,7 @@ namespace APIFinalP.Controllers
         //get
         //api/appointment
         [HttpGet]
+        //Inside the ActionResult there is a generic, which is acual shape of the data.
         public ActionResult<List<Appointment>> GetAllAppointments()
         {
             using SqlConnection connection = new SqlConnection(connectionString);
@@ -57,23 +58,44 @@ namespace APIFinalP.Controllers
         [HttpPost]
         public ActionResult<Appointment> CreateAppointment(Appointment appointment)
         {
+            // Check if the patient and doctor exist (optional but recommended for data integrity)
+            if (appointment.Patient_Id < 1 || appointment.Doctor_Id < 1)
+            {
+                return BadRequest(new { Message = "Invalid Patient_Id or Doctor_Id." });
+            }
             using SqlConnection connection = new SqlConnection(connectionString);
-            //return Ok(appointment);
+
+            // Check if the patient exists
+            Patient patient = connection.QueryFirstOrDefault<Patient>(
+                "SELECT * FROM Hospital.Patient WHERE Patient_Id = @Id", new { Id = appointment.Patient_Id });
+
+            if (patient == null)
+            {
+                return BadRequest(new { Message = "Patient Not Found." });
+            }
+
+            // Check if the Doctor exists
+            Doctor doctor = connection.QueryFirstOrDefault<Doctor>(
+                "SELECT * FROM Hospital.Doctor WHERE Doctor_Id = @Id", new { Id = appointment.Doctor_Id });
+
+            if (doctor == null)
+            {
+                return BadRequest(new { message = "Doctor Not Found." });
+            }
 
             try
             {
                 Appointment newAppointment = connection.QuerySingle<Appointment>(
-                    "INSERT INTO Hospital.Appointment(Patient_Id, Doctor_Id, Nurse_Id, AppointmentDate, RegistrationDate) " +
-                    "VALUES (@Patient_Id, @Doctor_Id, @Nurse_Id, @AppointmentDate, @RegistrationDate); SELLECT * FROM Hospital.Appointment " +
-                    "WHERE Appointment_Id = SCOPE_IDENTITY(); ", appointment);
+                    "INSERT INTO Hospital.Appointment (Patient_Id, Doctor_Id, AppointmentDate, RegistrationDate) " +
+                    "OUTPUT INSERTED.* VALUES (@Patient_Id, @Doctor_Id, @AppointmentDate, @RegistrationDate);", appointment);
+
                 return Ok(newAppointment);
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex);
-                return BadRequest();
+                return BadRequest(new { message = "An error occurred while creating the appointment.", error = ex.Message });
             }
-
         }
         //PUT api/Appointment/id
         [HttpPut("{id}")]
@@ -88,13 +110,32 @@ namespace APIFinalP.Controllers
             //return Ok(appointment);
             //PUT- we have to send every information wheether changed or not
             int rowAffected = connection.Execute(
-                "UPDATE Hospital.Appointment SET Patient_Id =@Patient_Id, Doctor_Id =@Doctor_Id, Nurse_Id =@Nurse_Id, AppointmentDate =@AppointmentDate, RegistrationDate =@RegistrationDate" +
+                "UPDATE Hospital.Appointment SET Patient_Id =@Patient_Id, Doctor_Id =@Doctor_Id, AppointmentDate =@AppointmentDate, RegistrationDate =@RegistrationDate" +
                 " WHERE Appointment_Id =@Appointment_Id ", appointment);
             if (rowAffected == 0)
             {
                 return BadRequest();
             }
             return Ok(appointment);
+        }
+        //Delete operation
+        //Delete api/Appointment/id
+        [HttpDelete("{id}")]
+
+        public ActionResult DeleteAppointment(int id)
+        {
+            if (id < 1)
+            {
+                return NotFound();
+            }
+            using SqlConnection connection = new SqlConnection(connectionString);
+            int rowAffected = connection.Execute("DELETE FROM Hospital.Appointment WHERE appointment_Id = @Id", new { Id = id });
+
+            if (rowAffected == 0)
+            {
+                return BadRequest();
+            }
+            return Ok();
         }
     }
 }
